@@ -1,0 +1,6 @@
+spring_boot_executable : /home/osboxes/example.jar
+spring_boot_service : example-app-service
+spring_boot_service_path : /etc/systemd/system/example_app.service
+spring_boot_user : example_app_user
+spring_boot_config : /home/osboxes/example.jar!/application-default.properties
+spring_boot_log_path : /var/log/example_logs

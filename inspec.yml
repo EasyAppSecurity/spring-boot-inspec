@@ -1,0 +1,10 @@
+name: spring-boot-inspec
+title: Spring Boot Assessment Inspec Profile
+version: 0.1.0
+summary: Inspec libraries and controls for Spring Boot Assessment
+maintainer: Mikhail Rusakovich
+copyright: Mikhail Rusakovich
+copyright_email: rusakovichma@gmail.com
+license: Apache-2.0
+supports:
+  - os-family: unix
