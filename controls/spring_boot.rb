@@ -56,7 +56,8 @@ spring_boot_log_path = attribute(
 )
 
 options = {
-  assignment_regex: /^\s*([^=]*?)\s*=\s*(.*?)\s*$/
+  assignment_regex: /^\s*([^=]*?)\s*=\s*(.*?)\s*$/,
+  multiple_values: false
 }
 
 spring_boot_parsed_config = ''
@@ -178,7 +179,7 @@ control 'spring-boot-1.6' do
   desc 'Verify Spring Boot SSL settings'
   
   describe parse_config(spring_boot_parsed_config, options).params['server.ssl.ciphers'] do
-   it { should_not be_nil.or be_empty }
+   it { should_not be_nil }
   end
   
   describe parse_config(spring_boot_parsed_config, options).params['server.ssl.enabled'] do
@@ -190,11 +191,11 @@ control 'spring-boot-1.6' do
   end
   
   describe parse_config(spring_boot_parsed_config, options).params['server.ssl.key-store'] do
-   it { should_not be_nil.or be_empty }
+   it { should_not be_nil }
   end
   
   describe parse_config(spring_boot_parsed_config, options).params['server.ssl.trust-store'] do
-   it { should_not be_nil.or be_empty }
+   it { should_not be_nil }
   end
   
 end
