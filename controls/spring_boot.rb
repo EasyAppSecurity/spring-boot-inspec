@@ -109,10 +109,6 @@ control 'spring-boot-1.2' do
   title 'Ensure that Spring boot application service is running'
   desc 'Ensure that Spring boot application is running and enabled'
   
-  only_if do
-    service(spring_boot_service.to_s).exist?
-  end
-
   describe service(spring_boot_service) do
     it { should be_installed }
     it { should be_enabled }
@@ -181,11 +177,24 @@ control 'spring-boot-1.6' do
   title 'Verify Spring Boot SSL settings'
   desc 'Verify Spring Boot SSL settings'
   
-  describe parse_config(spring_boot_parsed_config, options) do
-	its('server.ssl.ciphers') { should_not be_nil.or be_empty }
-	its('server.ssl.enabled') { should eq 'true' }
-	its('server.ssl.protocol') { should eq 'TLS' }
-	its('server.ssl.key-store') { should_not be_nil.or be_empty }
-	its('server.ssl.trust-store') { should_not be_nil.or be_empty }
+  describe parse_config(spring_boot_parsed_config, options).params['server.ssl.ciphers'] do
+   it { should_not be_nil.or be_empty }
   end
+  
+  describe parse_config(spring_boot_parsed_config, options).params['server.ssl.enabled'] do
+   it { should eq 'true' }
+  end
+  
+  describe parse_config(spring_boot_parsed_config, options).params['server.ssl.protocol'] do
+   it { should eq 'TLS' }
+  end
+  
+  describe parse_config(spring_boot_parsed_config, options).params['server.ssl.key-store'] do
+   it { should_not be_nil.or be_empty }
+  end
+  
+  describe parse_config(spring_boot_parsed_config, options).params['server.ssl.trust-store'] do
+   it { should_not be_nil.or be_empty }
+  end
+  
 end
