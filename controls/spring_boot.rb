@@ -194,8 +194,114 @@ control 'spring-boot-1.6' do
    it { should_not be_nil }
   end
   
-  describe parse_config(spring_boot_parsed_config, options).params['server.ssl.trust-store'] do
+end
+
+control 'spring-boot-1.7' do
+  impact 1.0
+  title 'Verify Integration with HashiCorp Vault is enabled'
+  desc 'Verify Integration with HashiCorp Vault is enabled'
+  
+  describe parse_config(spring_boot_parsed_config, options).params['spring.vault.uri'] do
    it { should_not be_nil }
   end
-  
+   
 end
+
+control 'spring-boot-1.8' do
+  impact 0.5
+  title 'Ensure database queries are not included binding parameters'
+  desc 'Ensure database queries are not included binding parameters'
+  
+  describe parse_config(spring_boot_parsed_config, options).params['logging.level.org.hibernate.type.descriptor.sql'] do
+   it { should be_nil }
+  end
+   
+end
+
+control 'spring-boot-1.9' do
+  impact 1.0
+  title 'Ensure HTTP without TLS is not used for all the integrations'
+  desc 'Ensure HTTP without TLS is not used for all the integrations'
+  
+  describe command('echo #{spring_boot_parsed_config} | grep http://'), :sensitive do
+    its(:stdout) { should be_empty }
+  end
+   
+end
+
+control 'spring-boot-2.0' do
+  impact 1.0
+  title 'Ensure superuser account is not used for the database integration'
+  desc 'Ensure superuser account is not used for the database integration'
+  
+  if spring_boot_config.to_s.downcase.include? "postgres"
+	describe parse_config(spring_boot_parsed_config, options).params['spring.datasource.url'] do
+		it { should_not match(/user\s*=\s*(postgres)/) }
+	end
+	
+	describe parse_config(spring_boot_parsed_config, options).params['spring.datasource.username'] do
+		it { should_not eq 'postgres' }
+	end
+  end
+  
+  if spring_boot_config.to_s.downcase.include? "sqlserver"
+	describe parse_config(spring_boot_parsed_config, options).params['spring.datasource.url'] do
+		it { should_not match(/user\s*=\s*(sa)/) }
+	end
+	
+	describe parse_config(spring_boot_parsed_config, options).params['spring.datasource.username'] do
+		it { should_not eq 'sa' }
+	end
+  end
+     
+end
+
+control 'spring-boot-2.1' do
+  impact 1.0
+  title 'Ensure TLS is used for the database integration'
+  desc 'Ensure TLS is used for the database integration'
+  
+  if spring_boot_config.to_s.downcase.include? "postgres"
+	describe.one do
+		describe parse_config(spring_boot_parsed_config, options).params['spring.datasource.url'] do
+			it { should match(/sslmode\s*=\s*(verify-ca|verify-full|require)/) }
+		end
+		
+		describe parse_config(spring_boot_parsed_config, options).params['spring.datasource.url'] do
+			it { should match(/ssl\s*=\s*(true)/) }
+		end
+	end
+  end
+  
+  if spring_boot_config.to_s.downcase.include? "sqlserver"
+	describe parse_config(spring_boot_parsed_config, options).params['spring.datasource.url'] do
+		it { should match(/encrypt\s*=\s*(true)/) }
+	end
+	
+	describe parse_config(spring_boot_parsed_config, options).params['spring.datasource.url'] do
+		it { should_not match(/trustServerCertificate\s*=\s*(true)/) }
+	end
+  end
+     
+end
+
+control 'spring-boot-2.2' do
+  impact 1.0
+  title 'Ensure TLS and authentication is used for SMTP'
+  desc 'Ensure TLS is used for SMTP'
+  
+  if spring_boot_config.to_s.downcase.include? "spring.mail.host"
+	  describe parse_config(spring_boot_parsed_config, options).params['spring.mail.properties.mail.smtp.auth'] do
+	   it { should eq 'true' }
+	  end
+  
+	  describe parse_config(spring_boot_parsed_config, options).params['spring.mail.properties.mail.smtp.starttls.enable'] do
+	   it { should eq 'true' }
+	  end
+  
+	  describe parse_config(spring_boot_parsed_config, options).params['spring.mail.properties.mail.smtp.starttls.required'] do
+	   it { should eq 'true' }
+	  end
+  end
+end
+
