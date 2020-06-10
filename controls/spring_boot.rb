@@ -234,7 +234,7 @@ control 'spring-boot-2.0' do
   title 'Ensure superuser account is not used for the database integration'
   desc 'Ensure superuser account is not used for the database integration'
   
-  if spring_boot_config.to_s.downcase.include? "postgres"
+  if spring_boot_parsed_config.to_s.downcase.include? "postgres"
 	describe parse_config(spring_boot_parsed_config, options).params['spring.datasource.url'] do
 		it { should_not match(/user\s*=\s*(postgres)/) }
 	end
@@ -244,7 +244,7 @@ control 'spring-boot-2.0' do
 	end
   end
   
-  if spring_boot_config.to_s.downcase.include? "sqlserver"
+  if spring_boot_parsed_config.to_s.downcase.include? "sqlserver"
 	describe parse_config(spring_boot_parsed_config, options).params['spring.datasource.url'] do
 		it { should_not match(/user\s*=\s*(sa)/) }
 	end
@@ -261,7 +261,7 @@ control 'spring-boot-2.1' do
   title 'Ensure TLS is used for the database integration'
   desc 'Ensure TLS is used for the database integration'
   
-  if spring_boot_config.to_s.downcase.include? "postgres"
+  if spring_boot_parsed_config.to_s.downcase.include? "postgres"
 	describe.one do
 		describe parse_config(spring_boot_parsed_config, options).params['spring.datasource.url'] do
 			it { should match(/sslmode\s*=\s*(verify-ca|verify-full|require)/) }
@@ -273,7 +273,7 @@ control 'spring-boot-2.1' do
 	end
   end
   
-  if spring_boot_config.to_s.downcase.include? "sqlserver"
+  if spring_boot_parsed_config.to_s.downcase.include? "sqlserver"
 	describe parse_config(spring_boot_parsed_config, options).params['spring.datasource.url'] do
 		it { should match(/encrypt\s*=\s*(true)/) }
 	end
@@ -290,7 +290,7 @@ control 'spring-boot-2.2' do
   title 'Ensure TLS and authentication is used for SMTP'
   desc 'Ensure TLS is used for SMTP'
   
-  if spring_boot_config.to_s.downcase.include? "spring.mail.host"
+  if spring_boot_parsed_config.to_s.downcase.include? "spring.mail.host"
 	  describe parse_config(spring_boot_parsed_config, options).params['spring.mail.properties.mail.smtp.auth'] do
 	   it { should eq 'true' }
 	  end
