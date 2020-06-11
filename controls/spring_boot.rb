@@ -62,6 +62,10 @@ options = {
 
 spring_boot_parsed_config = ''
 
+def config_parse
+	return parse_config(spring_boot_parsed_config, options)
+end
+
 control 'spring-boot-1.1' do
   impact 1.0
   title 'Verify Spring Boot configuration permissions are set to 640 or more restrictive (if not inside .jar file)'
@@ -178,23 +182,23 @@ control 'spring-boot-1.6' do
   title 'Verify Spring Boot SSL settings'
   desc 'Verify Spring Boot SSL settings'
   
-  describe parse_config(spring_boot_parsed_config, options).params['server.ssl.ciphers'] do
+  describe config_parse.params['server.ssl.ciphers'] do
    it { should_not be_nil }
   end
   
-  describe parse_config(spring_boot_parsed_config, options).params['server.ssl.enabled'] do
+  describe config_parse.params['server.ssl.enabled'] do
    it { should_not eq 'false' }
   end
   
-  describe parse_config(spring_boot_parsed_config, options).params['server.ssl.protocol'] do
+  describe config_parse.params['server.ssl.protocol'] do
    it { should eq 'TLS' }
   end
   
-  describe parse_config(spring_boot_parsed_config, options).params['server.ssl.key-store'] do
+  describe config_parse.params['server.ssl.key-store'] do
    it { should_not be_nil }
   end
   
-  describe parse_config(spring_boot_parsed_config, options).params['server.ssl.enabled-protocols'] do
+  describe config_parse.params['server.ssl.enabled-protocols'] do
    it { should eq 'TLSv1.2' }
   end
   
@@ -205,7 +209,7 @@ control 'spring-boot-1.7' do
   title 'Verify Integration with HashiCorp Vault is enabled'
   desc 'Verify Integration with HashiCorp Vault is enabled'
   
-  describe parse_config(spring_boot_parsed_config, options).params['spring.vault.uri'] do
+  describe config_parse.params['spring.vault.uri'] do
    it { should_not be_nil }
   end
    
@@ -216,7 +220,7 @@ control 'spring-boot-1.8' do
   title 'Ensure database queries are not included binding parameters'
   desc 'Ensure database queries are not included binding parameters'
   
-  describe parse_config(spring_boot_parsed_config, options).params['logging.level.org.hibernate.type.descriptor.sql'] do
+  describe config_parse.params['logging.level.org.hibernate.type.descriptor.sql'] do
    it { should be_nil }
   end
    
@@ -238,22 +242,22 @@ control 'spring-boot-2.0' do
   title 'Ensure superuser account is not used for the database integration'
   desc 'Ensure superuser account is not used for the database integration'
   
-  if spring_boot_parsed_config.to_s.downcase.include? "postgres"
-	describe parse_config(spring_boot_parsed_config, options).params['spring.datasource.url'] do
+  if spring_boot_parsed_config.include? "postgres"
+	describe config_parse.params['spring.datasource.url'] do
 		it { should_not match(/user\s*=\s*(postgres)/) }
 	end
 	
-	describe parse_config(spring_boot_parsed_config, options).params['spring.datasource.username'] do
+	describe config_parse.params['spring.datasource.username'] do
 		it { should_not eq 'postgres' }
 	end
   end
   
-  if spring_boot_parsed_config.to_s.downcase.include? "sqlserver"
-	describe parse_config(spring_boot_parsed_config, options).params['spring.datasource.url'] do
+  if spring_boot_parsed_config.include? "sqlserver"
+	describe config_parse.params['spring.datasource.url'] do
 		it { should_not match(/user\s*=\s*(sa)/) }
 	end
 	
-	describe parse_config(spring_boot_parsed_config, options).params['spring.datasource.username'] do
+	describe config_parse.params['spring.datasource.username'] do
 		it { should_not eq 'sa' }
 	end
   end
@@ -265,24 +269,24 @@ control 'spring-boot-2.1' do
   title 'Ensure TLS is used for the database integration'
   desc 'Ensure TLS is used for the database integration'
   
-  if spring_boot_parsed_config.to_s.downcase.include? "postgres"
+  if spring_boot_parsed_config.include? "postgres"
 	describe.one do
-		describe parse_config(spring_boot_parsed_config, options).params['spring.datasource.url'] do
+		describe config_parse.params['spring.datasource.url'] do
 			it { should match(/sslmode\s*=\s*(verify-ca|verify-full|require)/) }
 		end
 		
-		describe parse_config(spring_boot_parsed_config, options).params['spring.datasource.url'] do
+		describe config_parse.params['spring.datasource.url'] do
 			it { should match(/ssl\s*=\s*(true)/) }
 		end
 	end
   end
   
-  if spring_boot_parsed_config.to_s.downcase.include? "sqlserver"
-	describe parse_config(spring_boot_parsed_config, options).params['spring.datasource.url'] do
+  if spring_boot_parsed_config.include? "sqlserver"
+	describe config_parse.params['spring.datasource.url'] do
 		it { should match(/encrypt\s*=\s*(true)/) }
 	end
 	
-	describe parse_config(spring_boot_parsed_config, options).params['spring.datasource.url'] do
+	describe config_parse.params['spring.datasource.url'] do
 		it { should_not match(/trustServerCertificate\s*=\s*(true)/) }
 	end
   end
@@ -294,12 +298,12 @@ control 'spring-boot-2.2' do
   title 'Ensure TLS and authentication is used for SMTP'
   desc 'Ensure TLS is used for SMTP'
   
-  if spring_boot_parsed_config.to_s.downcase.include? "spring.mail.host"
+  if spring_boot_parsed_config.include? "spring.mail.host"
 	  spring_mail_security_properties = ['spring.mail.properties.mail.smtp.auth', 
 	  'spring.mail.properties.mail.smtp.starttls.enable', 'spring.mail.properties.mail.smtp.starttls.required']
 	  
 	  spring_mail_security_properties.each do |spring_mail_security_property|
-		describe parse_config(spring_boot_parsed_config, options).params["#{spring_mail_security_property}"] do
+		describe config_parse.params["#{spring_mail_security_property}"] do
 			it { should eq 'true' }
 		end
 	  end
@@ -314,43 +318,43 @@ control 'spring-boot-2.3' do
   
   management_server_alone = true
   
-  server_port = parse_config(spring_boot_parsed_config, options).params['management.server.port']
+  server_port = config_parse.params['management.server.port']
   if server_port.nil?
-	server_port = parse_config(spring_boot_parsed_config, options).params['management.port']
+	server_port = config_parse.params['management.port']
   end
   if server_port.nil?
-	server_port = parse_config(spring_boot_parsed_config, options).params['server.port']
+	server_port = config_parse.params['server.port']
 	management_server_alone = false
   end
   if server_port.nil?
 	server_port = '8080'
   end
   
-  actuator_base_path = parse_config(spring_boot_parsed_config, options).params['management.endpoints.web.base-path']
+  actuator_base_path = config_parse.params['management.endpoints.web.base-path']
   if actuator_base_path.nil?
-	actuator_base_path = parse_config(spring_boot_parsed_config, options).params['management.context-path']
+	actuator_base_path = config_parse.params['management.context-path']
   end
   if actuator_base_path.nil?
 	actuator_base_path = '/actuator'
   end
   
   if !management_server_alone
-	context_path = parse_config(spring_boot_parsed_config, options).params['server.contextPath']
+	context_path = config_parse.params['server.contextPath']
 	if !context_path.nil?
 		actuator_base_path = context_path + actuator_base_path
 	end
   end
   
   protocol = 'http'
-  if spring_boot_parsed_config.to_s.downcase.include? "management.server.ssl." && management_server_alone
-	management_ssl_enabled_option = parse_config(spring_boot_parsed_config, options).params['management.server.ssl.enabled']
+  if (spring_boot_parsed_config.include? "management.server.ssl.") && management_server_alone
+	management_ssl_enabled_option = config_parse.params['management.server.ssl.enabled']
 	if !"false".eql?(management_ssl_enabled_option)
 		protocol = 'https'
 	end
   end
   
-  if spring_boot_parsed_config.to_s.downcase.include? "server.ssl." && !management_server_alone
-	ssl_enabled_option = parse_config(spring_boot_parsed_config, options).params['server.ssl.enabled']
+  if (spring_boot_parsed_config.include? "server.ssl.") && !management_server_alone
+	ssl_enabled_option = config_parse.params['server.ssl.enabled']
 	if !"false".eql?(ssl_enabled_option)
 		protocol = 'https'
 	end
