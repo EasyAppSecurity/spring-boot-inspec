@@ -9,7 +9,7 @@ Spring Boot application Security Assessment InSpec profile
 $ git clone https://github.com/EasyAppSecurity/spring-boot-inspec
 
 ```
-3. Create properties .yml file in **inspec-vault/attributes** folder, where specify Vault settings. 
+3. Create properties .yml file in **inspec-vault/attributes** folder, where specify Spring Boot application settings. 
 For example, vault-centos7-test.yml:
 ```yaml
 spring_boot_executable : /home/osboxes/example.jar # The path on the system where Spring Boot application .jar file is located
