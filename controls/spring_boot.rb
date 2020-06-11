@@ -207,7 +207,7 @@ control 'spring-boot-1.6' do
   
   interfaces.each do |interface|
 	server_http_address = 'http://' + interface + ":" + server_port
-	describe http(endpoint_path, ssl_verify: false) do
+	describe http(server_http_address, ssl_verify: false) do
 		its("status") { should_not cmp 200 }
 	end
   end
