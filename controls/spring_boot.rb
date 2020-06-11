@@ -198,6 +198,20 @@ control 'spring-boot-1.6' do
    it { should eq 'TLSv1.2' }
   end
   
+  server_port = parse_config(spring_boot_parsed_config, options).params['server.port']
+  if server_port.nil?
+	server_port = '8080'
+  end
+  
+  interfaces = command("hostname -I").stdout.strip.split(" ")
+  
+  interfaces.each do |interface|
+	server_http_address = 'http://' + interface + ":" + server_port
+	describe http(endpoint_path, ssl_verify: false) do
+		its("status") { should_not cmp 200 }
+	end
+  end
+    
 end
 
 control 'spring-boot-1.7' do
