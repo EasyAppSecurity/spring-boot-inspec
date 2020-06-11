@@ -183,7 +183,7 @@ control 'spring-boot-1.6' do
   end
   
   describe parse_config(spring_boot_parsed_config, options).params['server.ssl.enabled'] do
-   it { should eq 'true' }
+   it { should_not eq 'false' }
   end
   
   describe parse_config(spring_boot_parsed_config, options).params['server.ssl.protocol'] do
@@ -192,6 +192,10 @@ control 'spring-boot-1.6' do
   
   describe parse_config(spring_boot_parsed_config, options).params['server.ssl.key-store'] do
    it { should_not be_nil }
+  end
+  
+  describe parse_config(spring_boot_parsed_config, options).params['server.ssl.enabled-protocols'] do
+   it { should eq 'TLSv1.2' }
   end
   
 end
@@ -291,17 +295,449 @@ control 'spring-boot-2.2' do
   desc 'Ensure TLS is used for SMTP'
   
   if spring_boot_parsed_config.to_s.downcase.include? "spring.mail.host"
-	  describe parse_config(spring_boot_parsed_config, options).params['spring.mail.properties.mail.smtp.auth'] do
-	   it { should eq 'true' }
+	  spring_mail_security_properties = ['spring.mail.properties.mail.smtp.auth', 
+	  'spring.mail.properties.mail.smtp.starttls.enable', 'spring.mail.properties.mail.smtp.starttls.required']
+	  
+	  spring_mail_security_properties.each do |spring_mail_security_property|
+		describe parse_config(spring_boot_parsed_config, options).params["#{spring_mail_security_property}"] do
+			it { should eq 'true' }
+		end
 	  end
-  
-	  describe parse_config(spring_boot_parsed_config, options).params['spring.mail.properties.mail.smtp.starttls.enable'] do
-	   it { should eq 'true' }
-	  end
-  
-	  describe parse_config(spring_boot_parsed_config, options).params['spring.mail.properties.mail.smtp.starttls.required'] do
-	   it { should eq 'true' }
-	  end
+
   end
 end
 
+control 'spring-boot-2.3' do
+  impact 1.0
+  title 'Ensure Spring Boot actuator API is protected'
+  desc 'Ensure Spring Boot actuator API is protected'
+  
+  management_server_alone = true
+  
+  server_port = parse_config(spring_boot_parsed_config, options).params['management.server.port']
+  if server_port == nil
+	server_port = parse_config(spring_boot_parsed_config, options).params['management.port']
+  end
+  if server_port == nil
+	server_port = parse_config(spring_boot_parsed_config, options).params['server.port']
+	management_server_alone = false
+  end
+  if server_port == nil
+	server_port = '8080'
+  end
+  
+  actuator_base_path = parse_config(spring_boot_parsed_config, options).params['management.endpoints.web.base-path']
+  if actuator_base_path == nil
+	actuator_base_path = parse_config(spring_boot_parsed_config, options).params['management.context-path']
+  end
+  if actuator_base_path == nil
+	actuator_base_path = '/actuator'
+  end
+  
+  if !management_server_alone
+	context_path = parse_config(spring_boot_parsed_config, options).params['server.contextPath']
+	if context_path != nil
+		actuator_base_path = context_path + actuator_base_path
+	end
+  end
+  
+  protocol = 'http'
+  if spring_boot_parsed_config.to_s.downcase.include? "management.server.ssl." && management_server_alone
+	management_ssl_enabled_option = parse_config(spring_boot_parsed_config, options).params['management.server.ssl.enabled']
+	if management_ssl_enabled_option != 'false'
+		protocol = 'https'
+	end
+  end
+  
+  if spring_boot_parsed_config.to_s.downcase.include? "server.ssl." && !management_server_alone
+	ssl_enabled_option = parse_config(spring_boot_parsed_config, options).params['server.ssl.enabled']
+	if ssl_enabled_option != 'false'
+		protocol = 'https'
+	end
+  end
+  
+  interfaces = command("hostname -I").stdout.strip.split(" ")
+  
+  endpoints = ['auditevents', 'beans', 'caches', 'conditions', 'configprops', 
+	'env', 'flyway', 'health', 'heapdump', 'httptrace', 'info', 'integrationgraph',
+	'jolokia', 'logfile', 'loggers', 'liquibase', 'metrics', 'mappings', 'prometheus',
+	'scheduledtasks', 'sessions', 'shutdown', 'threaddump']
+
+  interfaces.each do |interface|
+	endpoints.each do |endpoint|
+		endpoint_path = protocol + '://' + interface + ":" + server_port + actuator_base_path + "/" + endpoint
+		describe http(endpoint_path, ssl_verify: false) do
+			its("status") { should_not cmp 200 }
+		end
+	end
+  end
+  
+end
+
+control 'spring-boot-2.4' do
+  impact 1.0
+  title 'Ensure Spring Boot actuator endpoints are not enabled'
+  desc 'Ensure Spring Boot actuator endpoints not enabled'
+  
+  endpoints_properties = ['loggers.enabled', 'auditevents.enabled', 'autoconfig.enabled', 'beans.enabled',
+  'configprops.enabled', 'heapdump.enabled', 'dump.enabled', 'env.enabled', 'error.enabled', 'info.enabled',
+  'metrics.enabled', 'mappings.enabled', 'shutdown.enabled', 'trace.enabled']
+  
+  endpoints_props_prefixes = ['endpoints.', 'management.endpoint.']
+  
+  endpoints_props_prefixes.each do |endpoints_props_prefix|
+      endpoints_properties.each do |endpoints_property|
+		  full_property_path = endpoints_props_prefix + endpoints_property
+		  describe parse_config(spring_boot_parsed_config, options).params["#{full_property_path}"] do
+			it { should_not eq 'true' }
+		  end
+	  end
+  end
+  
+  not_whilecard_endpoints_properties = ['management.endpoints.jmx.exposure.include', 
+  'management.endpoints.web.exposure.include', 'management.endpoints.web.cors.allow-credentials']
+  
+  not_whilecard_endpoints_properties.each do |not_whilecard_endpoints_property|
+	  describe parse_config(spring_boot_parsed_config, options).params["#{not_whilecard_endpoints_property}"] do
+		it { should_not eq '*' }
+	  end
+  end
+  
+end
+
+control 'spring-boot-2.5' do
+  impact 0.5
+  title 'Ensure debus logs are not enabled in production'
+  desc 'Ensure debus logs are not enabled in production'
+  
+  describe parse_config(spring_boot_parsed_config, options) do
+	its("debug") { should_not eq 'true' }
+	its("trace") { should_not eq 'true' }
+  end
+end
+
+control 'spring-boot-2.6' do
+  impact 0.5
+  title 'Ensure admin features and management beans are not enabled in production if possible'
+  desc 'Ensure admin features and management beans are not enabled in production if possible'
+  
+  describe parse_config(spring_boot_parsed_config, options).params["spring.application.admin.enabled"] do
+	it { should_not eq 'true' }
+  end
+  
+  describe parse_config(spring_boot_parsed_config, options).params["spring.jmx.enabled"] do
+	it { should_not eq 'true' }
+  end
+end
+
+control 'spring-boot-2.7' do
+  impact 0.5
+  title 'Ensure stracktrace is not included on error pages'
+  desc 'Ensure stracktrace is not included on error pages'
+  
+  if spring_boot_parsed_config.to_s.include? "server.error.include-stacktrace"
+	  describe parse_config(spring_boot_parsed_config, options).params["server.error.include-stacktrace"] do
+		it { should eq 'never' }
+	  end
+  end
+  
+end
+
+control 'spring-boot-2.8' do
+  impact 1.0
+  title 'Ensure Cookies security attributes are set'
+  desc 'Ensure Cookies security attributes are set'
+  
+  describe parse_config(spring_boot_parsed_config, options).params["server.servlet.session.cookie.http-only"] do
+	it { should eq 'true' }
+  end
+  
+  describe parse_config(spring_boot_parsed_config, options).params["server.servlet.session.cookie.secure"] do
+	it { should eq 'true' }
+  end
+  
+end
+
+control 'spring-boot-2.9' do
+  impact 0.5
+  title 'Validate TLS is used for LDAP connection'
+  desc 'Validate TLS is used for LDAP connection'
+  
+  if spring_boot_parsed_config.to_s.include? "spring.ldap."
+	  describe parse_config(spring_boot_parsed_config, options).params["spring.ldap.urls"] do
+		it { should_not include 'ldap://' }
+	  end
+  end
+  
+end
+
+control 'spring-boot-3.0' do
+  impact 1.0
+  title 'Ensure Spring Boot default user is not used'
+  desc 'Ensure Spring Boot default user is not used'
+  
+  describe parse_config(spring_boot_parsed_config, options).params["spring.security.user.name"] do
+	it { should be_nil }
+  end
+  
+end
+
+control 'spring-boot-3.1' do
+  impact 1.0
+  title 'Ensure TLS is used for COUCHBASE (if used)'
+  desc 'Ensure TLS is used for COUCHBASE (if used)'
+  
+  if spring_boot_parsed_config.to_s.include? "spring.couchbase."
+	  describe parse_config(spring_boot_parsed_config, options).params["spring.couchbase.env.ssl.key-store"] do
+		it { should_not be_nil }
+	  end
+	  
+	  describe parse_config(spring_boot_parsed_config, options).params["spring.couchbase.env.ssl.enabled"] do
+		it { should_not eq 'false' }
+	  end
+  end
+  
+end
+
+control 'spring-boot-3.1' do
+  impact 1.0
+  title 'Ensure TLS is used for CASSANDRA (if used)'
+  desc 'Ensure TLS is used for CASSANDRA (if used)'
+  
+  if spring_boot_parsed_config.to_s.include? "spring.data.cassandra."
+	  describe parse_config(spring_boot_parsed_config, options).params["spring.data.cassandra.ssl"] do
+		it { should_not eq 'false' }
+	  end
+  end
+  
+end
+
+control 'spring-boot-3.2' do
+  impact 1.0
+  title 'Ensure no default username or password is used for CASSANDRA integration (if used)'
+  desc 'Ensure no default username or password is used for CASSANDRA integration (if used)'
+  
+  if spring_boot_parsed_config.to_s.include? "spring.data.cassandra."
+	  describe parse_config(spring_boot_parsed_config, options).params["spring.data.cassandra.username"] do
+		it { should_not eq 'cassandra' }
+	  end
+	  
+	  describe parse_config(spring_boot_parsed_config, options).params["spring.data.cassandra.password"], :sensitive do
+		it { should_not eq 'cassandra' }
+	  end
+  end
+  
+end
+
+control 'spring-boot-3.3' do
+  impact 1.0
+  title 'Ensure MongoDB is accessed with authentication (if used)'
+  desc 'Ensure MongoDB is accessed with authentication (if used)'
+  
+  if spring_boot_parsed_config.to_s.include? "spring.data.mongodb.host"
+	  describe parse_config(spring_boot_parsed_config, options).params["spring.data.mongodb.username"] do
+		it { should_not be_nil }
+	  end
+	  
+	  describe parse_config(spring_boot_parsed_config, options).params["spring.data.mongodb.password"], :sensitive do
+		it { should_not be_nil }
+	  end
+  end
+  
+end
+
+control 'spring-boot-3.4' do
+  impact 1.0
+  title 'Ensure InfluxDB is accessed with authentication (if used)'
+  desc 'Ensure InfluxDB is accessed with authentication (if used)'
+  
+  if spring_boot_parsed_config.to_s.include? "spring.influx.url"
+	  describe parse_config(spring_boot_parsed_config, options).params["spring.influx.user"] do
+		it { should_not be_nil }
+	  end
+	  
+	  describe parse_config(spring_boot_parsed_config, options).params["spring.influx.password"], :sensitive do
+		it { should_not be_nil }
+	  end
+  end
+  
+end
+
+control 'spring-boot-3.4' do
+  impact 1.0
+  title 'Ensure Redis is accessed with authentication (if used)'
+  desc 'Ensure Redis is accessed with authentication (if used)'
+  
+  if spring_boot_parsed_config.to_s.include? "spring.redis.host"
+	  describe parse_config(spring_boot_parsed_config, options).params["spring.redis.password"], :sensitive do
+		it { should_not be_nil }
+	  end
+  end
+  
+end
+
+control 'spring-boot-3.5' do
+  impact 1.0
+  title 'Ensure TLS is used for Redis (if used)'
+  desc 'Ensure TLS is used for Redis (if used)'
+  
+  if spring_boot_parsed_config.to_s.include? "spring.redis."
+	  describe parse_config(spring_boot_parsed_config, options).params["spring.redis.ssl"] do
+		it { should eq 'true' }
+	  end
+  end
+  
+end
+
+control 'spring-boot-3.6' do
+  impact 1.0
+  title 'Ensure TLS is used for ActiveMQ (if used)'
+  desc 'Ensure TLS is used for ActiveMQ (if used)'
+  
+  if spring_boot_parsed_config.to_s.include? "spring.activemq."
+	  describe parse_config(spring_boot_parsed_config, options).params["spring.activemq.broker-url"] do
+		it { should include 'ssl://' }
+	  end
+  end
+  
+end
+
+control 'spring-boot-3.7' do
+  impact 1.0
+  title 'Ensure no default credentials for ActiveMQ are used'
+  desc 'Ensure no default credentials for ActiveMQ are used'
+  
+  if spring_boot_parsed_config.to_s.include? "spring.activemq."
+	  describe parse_config(spring_boot_parsed_config, options).params["spring.activemq.user"] do
+		it { should_not eq 'admin' }
+	  end
+	  
+	  describe parse_config(spring_boot_parsed_config, options).params["spring.activemq.password"], :sensitive do
+		it { should_not eq 'admin' }
+	  end
+  end
+  
+end
+
+control 'spring-boot-3.8' do
+  impact 1.0
+  title 'Ensure TLS is used for Kafka'
+  desc 'Ensure TLS is used for Kafka'
+  
+  if spring_boot_parsed_config.to_s.include? "spring.kafka.admin."
+	  describe parse_config(spring_boot_parsed_config, options).params["spring.kafka.admin.ssl.keystore-location"] do
+		it { should_not be_nil }
+	  end
+	  
+	  describe parse_config(spring_boot_parsed_config, options).params["spring.kafka.admin.ssl.protocol"] do
+		it { should eq 'TLS' }
+	  end
+  end
+  
+  if spring_boot_parsed_config.to_s.include? "spring.kafka.consumer."
+	 describe parse_config(spring_boot_parsed_config, options).params["spring.kafka.consumer.ssl.keystore-location"] do
+		it { should_not be_nil }
+	 end
+	  
+	 describe parse_config(spring_boot_parsed_config, options).params["spring.kafka.consumer.ssl.protocol"] do
+		it { should eq 'TLS' }
+	 end
+  end
+  
+  if spring_boot_parsed_config.to_s.include? "spring.kafka.producer."
+	 describe parse_config(spring_boot_parsed_config, options).params["spring.kafka.producer.ssl.keystore-location"] do
+		it { should_not be_nil }
+	 end
+	  
+	 describe parse_config(spring_boot_parsed_config, options).params["spring.kafka.producer.ssl.protocol"] do
+		it { should eq 'TLS' }
+	 end
+  end
+  
+  if spring_boot_parsed_config.to_s.include? "spring.kafka."
+	 describe parse_config(spring_boot_parsed_config, options).params["spring.kafka.ssl.keystore-location"] do
+		it { should_not be_nil }
+	 end
+	  
+	 describe parse_config(spring_boot_parsed_config, options).params["spring.kafka.ssl.protocol"] do
+		it { should eq 'TLS' }
+	 end
+  end
+  
+end
+
+control 'spring-boot-3.9' do
+  impact 1.0
+  title 'Ensure no default credentials for RabbitMQ are used'
+  desc 'Ensure no default credentials for RabbitMQ are used'
+  
+  if spring_boot_parsed_config.to_s.include? "spring.rabbitmq."
+	  describe parse_config(spring_boot_parsed_config, options).params["spring.rabbitmq.username"] do
+		it { should_not eq 'guest' }
+	  end
+	  
+	  describe parse_config(spring_boot_parsed_config, options).params["spring.rabbitmq.password"], :sensitive do
+		it { should_not eq 'guest' }
+	  end
+  end
+  
+end
+
+control 'spring-boot-3.9' do
+  impact 1.0
+  title 'Ensure TLS for RabbitMQ is used'
+  desc 'Ensure TLS for RabbitMQ is used'
+  
+  if spring_boot_parsed_config.to_s.include? "spring.rabbitmq."
+	  describe parse_config(spring_boot_parsed_config, options).params["spring.rabbitmq.ssl.key-store"] do
+		it { should_not be_nil }
+	  end
+	  
+	  describe parse_config(spring_boot_parsed_config, options).params["spring.rabbitmq.ssl.enabled"] do
+		it { should eq 'true' }
+	  end
+  end
+  
+end
+
+control 'spring-boot-4.0' do
+  impact 0.5
+  title 'Ensure TLS validation is not skipped for Cloud Foundry actuator endpoints'
+  desc 'Ensure TLS validation is not skipped for Cloud Foundry actuator endpoints'
+  
+  if spring_boot_parsed_config.to_s.include? "management.cloudfoundry."
+	  describe parse_config(spring_boot_parsed_config, options).params["management.cloudfoundry.skip-ssl-validation"] do
+		it { should_not eq 'true' }
+	  end
+  end
+  
+end
+
+control 'spring-boot-4.0' do
+  impact 0.5
+  title 'Ensure all the management endpoints are disabled by default'
+  desc 'Ensure all the management endpoints are disabled by default'
+  
+  if spring_boot_parsed_config.to_s.include? "management.endpoints."
+	  describe parse_config(spring_boot_parsed_config, options).params["management.endpoints.enabled-by-default"] do
+		it { should eq 'false' }
+	  end
+  end
+  
+end
+
+control 'spring-boot-4.1' do
+  impact 1.0
+  title 'Ensure cookies are not included in the trace (if used)'
+  desc 'Ensure cookies are not included in the trace (if used)'
+  
+  if spring_boot_parsed_config.to_s.include? "management.trace."
+	  http_trace_enabled_option = parse_config(spring_boot_parsed_config, options).params["management.trace.http.enabled"]
+	  if http_trace_enabled_option == 'true'
+		  describe parse_config(spring_boot_parsed_config, options).params["management.trace.http.include"] do
+			it { should_not include 'cookies' }
+		  end
+	  end
+  end
+  
+end
