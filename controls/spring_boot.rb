@@ -315,28 +315,28 @@ control 'spring-boot-2.3' do
   management_server_alone = true
   
   server_port = parse_config(spring_boot_parsed_config, options).params['management.server.port']
-  if server_port == nil
+  if server_port.nil?
 	server_port = parse_config(spring_boot_parsed_config, options).params['management.port']
   end
-  if server_port == nil
+  if server_port.nil?
 	server_port = parse_config(spring_boot_parsed_config, options).params['server.port']
 	management_server_alone = false
   end
-  if server_port == nil
+  if server_port.nil?
 	server_port = '8080'
   end
   
   actuator_base_path = parse_config(spring_boot_parsed_config, options).params['management.endpoints.web.base-path']
-  if actuator_base_path == nil
+  if actuator_base_path.nil?
 	actuator_base_path = parse_config(spring_boot_parsed_config, options).params['management.context-path']
   end
-  if actuator_base_path == nil
+  if actuator_base_path.nil?
 	actuator_base_path = '/actuator'
   end
   
   if !management_server_alone
 	context_path = parse_config(spring_boot_parsed_config, options).params['server.contextPath']
-	if context_path != nil
+	if !context_path.nil?
 		actuator_base_path = context_path + actuator_base_path
 	end
   end
@@ -344,14 +344,14 @@ control 'spring-boot-2.3' do
   protocol = 'http'
   if spring_boot_parsed_config.to_s.downcase.include? "management.server.ssl." && management_server_alone
 	management_ssl_enabled_option = parse_config(spring_boot_parsed_config, options).params['management.server.ssl.enabled']
-	if management_ssl_enabled_option != false
+	if !"false".eql?(management_ssl_enabled_option)
 		protocol = 'https'
 	end
   end
   
   if spring_boot_parsed_config.to_s.downcase.include? "server.ssl." && !management_server_alone
 	ssl_enabled_option = parse_config(spring_boot_parsed_config, options).params['server.ssl.enabled']
-	if ssl_enabled_option != false
+	if !"false".eql?(ssl_enabled_option)
 		protocol = 'https'
 	end
   end
