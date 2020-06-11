@@ -344,14 +344,14 @@ control 'spring-boot-2.3' do
   protocol = 'http'
   if spring_boot_parsed_config.to_s.downcase.include? "management.server.ssl." && management_server_alone
 	management_ssl_enabled_option = parse_config(spring_boot_parsed_config, options).params['management.server.ssl.enabled']
-	if management_ssl_enabled_option != 'false'
+	if management_ssl_enabled_option != false
 		protocol = 'https'
 	end
   end
   
   if spring_boot_parsed_config.to_s.downcase.include? "server.ssl." && !management_server_alone
 	ssl_enabled_option = parse_config(spring_boot_parsed_config, options).params['server.ssl.enabled']
-	if ssl_enabled_option != 'false'
+	if ssl_enabled_option != false
 		protocol = 'https'
 	end
   end
