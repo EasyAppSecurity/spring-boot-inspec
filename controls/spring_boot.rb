@@ -449,7 +449,7 @@ control 'spring-boot-2.7' do
   title 'Ensure stracktrace is not included on error pages'
   desc 'Ensure stracktrace is not included on error pages'
   
-  if spring_boot_parsed_config.to_s.include? "server.error.include-stacktrace"
+  if spring_boot_parsed_config.include? "server.error.include-stacktrace"
 	  describe parse_config(spring_boot_parsed_config, options).params["server.error.include-stacktrace"] do
 		it { should eq 'never' }
 	  end
@@ -477,7 +477,7 @@ control 'spring-boot-2.9' do
   title 'Validate TLS is used for LDAP connection'
   desc 'Validate TLS is used for LDAP connection'
   
-  if spring_boot_parsed_config.to_s.include? "spring.ldap."
+  if spring_boot_parsed_config.include? "spring.ldap."
 	  describe parse_config(spring_boot_parsed_config, options).params["spring.ldap.urls"] do
 		it { should_not include 'ldap://' }
 	  end
@@ -501,7 +501,7 @@ control 'spring-boot-3.1' do
   title 'Ensure TLS is used for COUCHBASE (if used)'
   desc 'Ensure TLS is used for COUCHBASE (if used)'
   
-  if spring_boot_parsed_config.to_s.include? "spring.couchbase."
+  if spring_boot_parsed_config.include? "spring.couchbase."
 	  describe parse_config(spring_boot_parsed_config, options).params["spring.couchbase.env.ssl.key-store"] do
 		it { should_not be_nil }
 	  end
@@ -513,12 +513,12 @@ control 'spring-boot-3.1' do
   
 end
 
-control 'spring-boot-3.1' do
+control 'spring-boot-3.2' do
   impact 1.0
   title 'Ensure TLS is used for CASSANDRA (if used)'
   desc 'Ensure TLS is used for CASSANDRA (if used)'
   
-  if spring_boot_parsed_config.to_s.include? "spring.data.cassandra."
+  if spring_boot_parsed_config.include? "spring.data.cassandra."
 	  describe parse_config(spring_boot_parsed_config, options).params["spring.data.cassandra.ssl"] do
 		it { should_not eq 'false' }
 	  end
@@ -526,12 +526,12 @@ control 'spring-boot-3.1' do
   
 end
 
-control 'spring-boot-3.2' do
+control 'spring-boot-3.3' do
   impact 1.0
   title 'Ensure no default username or password is used for CASSANDRA integration (if used)'
   desc 'Ensure no default username or password is used for CASSANDRA integration (if used)'
   
-  if spring_boot_parsed_config.to_s.include? "spring.data.cassandra."
+  if spring_boot_parsed_config.include? "spring.data.cassandra."
 	  describe parse_config(spring_boot_parsed_config, options).params["spring.data.cassandra.username"] do
 		it { should_not eq 'cassandra' }
 	  end
@@ -543,12 +543,12 @@ control 'spring-boot-3.2' do
   
 end
 
-control 'spring-boot-3.3' do
+control 'spring-boot-3.4' do
   impact 1.0
   title 'Ensure MongoDB is accessed with authentication (if used)'
   desc 'Ensure MongoDB is accessed with authentication (if used)'
   
-  if spring_boot_parsed_config.to_s.include? "spring.data.mongodb.host"
+  if spring_boot_parsed_config.include? "spring.data.mongodb.host"
 	  describe parse_config(spring_boot_parsed_config, options).params["spring.data.mongodb.username"] do
 		it { should_not be_nil }
 	  end
@@ -560,12 +560,12 @@ control 'spring-boot-3.3' do
   
 end
 
-control 'spring-boot-3.4' do
+control 'spring-boot-3.5' do
   impact 1.0
   title 'Ensure InfluxDB is accessed with authentication (if used)'
   desc 'Ensure InfluxDB is accessed with authentication (if used)'
   
-  if spring_boot_parsed_config.to_s.include? "spring.influx.url"
+  if spring_boot_parsed_config.include? "spring.influx.url"
 	  describe parse_config(spring_boot_parsed_config, options).params["spring.influx.user"] do
 		it { should_not be_nil }
 	  end
@@ -577,12 +577,12 @@ control 'spring-boot-3.4' do
   
 end
 
-control 'spring-boot-3.4' do
+control 'spring-boot-3.6' do
   impact 1.0
   title 'Ensure Redis is accessed with authentication (if used)'
   desc 'Ensure Redis is accessed with authentication (if used)'
   
-  if spring_boot_parsed_config.to_s.include? "spring.redis.host"
+  if spring_boot_parsed_config.include? "spring.redis.host"
 	  describe parse_config(spring_boot_parsed_config, options).params["spring.redis.password"], :sensitive do
 		it { should_not be_nil }
 	  end
@@ -590,12 +590,12 @@ control 'spring-boot-3.4' do
   
 end
 
-control 'spring-boot-3.5' do
+control 'spring-boot-3.7' do
   impact 1.0
   title 'Ensure TLS is used for Redis (if used)'
   desc 'Ensure TLS is used for Redis (if used)'
   
-  if spring_boot_parsed_config.to_s.include? "spring.redis."
+  if spring_boot_parsed_config.include? "spring.redis."
 	  describe parse_config(spring_boot_parsed_config, options).params["spring.redis.ssl"] do
 		it { should eq 'true' }
 	  end
@@ -603,12 +603,12 @@ control 'spring-boot-3.5' do
   
 end
 
-control 'spring-boot-3.6' do
+control 'spring-boot-3.8' do
   impact 1.0
   title 'Ensure TLS is used for ActiveMQ (if used)'
   desc 'Ensure TLS is used for ActiveMQ (if used)'
   
-  if spring_boot_parsed_config.to_s.include? "spring.activemq."
+  if spring_boot_parsed_config.include? "spring.activemq."
 	  describe parse_config(spring_boot_parsed_config, options).params["spring.activemq.broker-url"] do
 		it { should include 'ssl://' }
 	  end
@@ -616,12 +616,12 @@ control 'spring-boot-3.6' do
   
 end
 
-control 'spring-boot-3.7' do
+control 'spring-boot-3.9' do
   impact 1.0
   title 'Ensure no default credentials for ActiveMQ are used'
   desc 'Ensure no default credentials for ActiveMQ are used'
   
-  if spring_boot_parsed_config.to_s.include? "spring.activemq."
+  if spring_boot_parsed_config.include? "spring.activemq."
 	  describe parse_config(spring_boot_parsed_config, options).params["spring.activemq.user"] do
 		it { should_not eq 'admin' }
 	  end
@@ -633,12 +633,12 @@ control 'spring-boot-3.7' do
   
 end
 
-control 'spring-boot-3.8' do
+control 'spring-boot-4.0' do
   impact 1.0
   title 'Ensure TLS is used for Kafka'
   desc 'Ensure TLS is used for Kafka'
   
-  if spring_boot_parsed_config.to_s.include? "spring.kafka.admin."
+  if spring_boot_parsed_config.include? "spring.kafka.admin."
 	  describe parse_config(spring_boot_parsed_config, options).params["spring.kafka.admin.ssl.keystore-location"] do
 		it { should_not be_nil }
 	  end
@@ -648,7 +648,7 @@ control 'spring-boot-3.8' do
 	  end
   end
   
-  if spring_boot_parsed_config.to_s.include? "spring.kafka.consumer."
+  if spring_boot_parsed_config.include? "spring.kafka.consumer."
 	 describe parse_config(spring_boot_parsed_config, options).params["spring.kafka.consumer.ssl.keystore-location"] do
 		it { should_not be_nil }
 	 end
@@ -658,7 +658,7 @@ control 'spring-boot-3.8' do
 	 end
   end
   
-  if spring_boot_parsed_config.to_s.include? "spring.kafka.producer."
+  if spring_boot_parsed_config.include? "spring.kafka.producer."
 	 describe parse_config(spring_boot_parsed_config, options).params["spring.kafka.producer.ssl.keystore-location"] do
 		it { should_not be_nil }
 	 end
@@ -668,7 +668,7 @@ control 'spring-boot-3.8' do
 	 end
   end
   
-  if spring_boot_parsed_config.to_s.include? "spring.kafka."
+  if spring_boot_parsed_config.include? "spring.kafka."
 	 describe parse_config(spring_boot_parsed_config, options).params["spring.kafka.ssl.keystore-location"] do
 		it { should_not be_nil }
 	 end
@@ -680,12 +680,12 @@ control 'spring-boot-3.8' do
   
 end
 
-control 'spring-boot-3.9' do
+control 'spring-boot-4.1' do
   impact 1.0
   title 'Ensure no default credentials for RabbitMQ are used'
   desc 'Ensure no default credentials for RabbitMQ are used'
   
-  if spring_boot_parsed_config.to_s.include? "spring.rabbitmq."
+  if spring_boot_parsed_config.include? "spring.rabbitmq."
 	  describe parse_config(spring_boot_parsed_config, options).params["spring.rabbitmq.username"] do
 		it { should_not eq 'guest' }
 	  end
@@ -697,12 +697,12 @@ control 'spring-boot-3.9' do
   
 end
 
-control 'spring-boot-3.9' do
+control 'spring-boot-4.2' do
   impact 1.0
   title 'Ensure TLS for RabbitMQ is used'
   desc 'Ensure TLS for RabbitMQ is used'
   
-  if spring_boot_parsed_config.to_s.include? "spring.rabbitmq."
+  if spring_boot_parsed_config.include? "spring.rabbitmq."
 	  describe parse_config(spring_boot_parsed_config, options).params["spring.rabbitmq.ssl.key-store"] do
 		it { should_not be_nil }
 	  end
@@ -714,12 +714,12 @@ control 'spring-boot-3.9' do
   
 end
 
-control 'spring-boot-4.0' do
+control 'spring-boot-4.3' do
   impact 0.5
   title 'Ensure TLS validation is not skipped for Cloud Foundry actuator endpoints'
   desc 'Ensure TLS validation is not skipped for Cloud Foundry actuator endpoints'
   
-  if spring_boot_parsed_config.to_s.include? "management.cloudfoundry."
+  if spring_boot_parsed_config.include? "management.cloudfoundry."
 	  describe parse_config(spring_boot_parsed_config, options).params["management.cloudfoundry.skip-ssl-validation"] do
 		it { should_not eq 'true' }
 	  end
@@ -727,12 +727,12 @@ control 'spring-boot-4.0' do
   
 end
 
-control 'spring-boot-4.0' do
+control 'spring-boot-4.4' do
   impact 0.5
   title 'Ensure all the management endpoints are disabled by default'
   desc 'Ensure all the management endpoints are disabled by default'
   
-  if spring_boot_parsed_config.to_s.include? "management.endpoints."
+  if spring_boot_parsed_config.include? "management.endpoints."
 	  describe parse_config(spring_boot_parsed_config, options).params["management.endpoints.enabled-by-default"] do
 		it { should eq 'false' }
 	  end
@@ -740,14 +740,14 @@ control 'spring-boot-4.0' do
   
 end
 
-control 'spring-boot-4.1' do
+control 'spring-boot-4.5' do
   impact 1.0
   title 'Ensure cookies are not included in the trace (if used)'
   desc 'Ensure cookies are not included in the trace (if used)'
   
-  if spring_boot_parsed_config.to_s.include? "management.trace."
+  if spring_boot_parsed_config.include? "management.trace."
 	  http_trace_enabled_option = parse_config(spring_boot_parsed_config, options).params["management.trace.http.enabled"]
-	  if http_trace_enabled_option == 'true'
+	  if "true".eql?(http_trace_enabled_option)
 		  describe parse_config(spring_boot_parsed_config, options).params["management.trace.http.include"] do
 			it { should_not include 'cookies' }
 		  end
